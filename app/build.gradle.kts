@@ -69,18 +69,37 @@ dependencies {
     // OpenCV - only add if SDK exists and JAR file is present
     val opencvSdkPath = project.rootProject.file("opencv-android-sdk")
     if (opencvSdkPath.exists()) {
-        // Try to find the OpenCV JAR file
-        val opencvJarPath = file("${opencvSdkPath}/sdk/java/opencv.jar")
-        if (opencvJarPath.exists()) {
-            implementation(files(opencvJarPath))
-        } else {
-            // Try alternative path
-            val altJarPath = file("${opencvSdkPath}/sdk/java/opencv-android.jar")
-            if (altJarPath.exists()) {
-                implementation(files(altJarPath))
-            } else {
-                println("WARNING: OpenCV JAR not found, OpenCV features may not work")
+        // Try multiple possible paths for OpenCV JAR
+        val possibleJarPaths = listOf(
+            "${opencvSdkPath}/sdk/java/opencv.jar",
+            "${opencvSdkPath}/sdk/java/opencv-android.jar",
+            "${opencvSdkPath}/sdk/java/opencv_java4.jar",
+            "${opencvSdkPath}/sdk/java/opencv_java.jar"
+        )
+        
+        var jarFound = false
+        for (jarPath in possibleJarPaths) {
+            val jarFile = file(jarPath)
+            if (jarFile.exists()) {
+                implementation(files(jarFile))
+                println("Found OpenCV JAR at: $jarPath")
+                jarFound = true
+                break
             }
+        }
+        
+        if (!jarFound) {
+            // List what's actually in the SDK directory for debugging
+            val sdkJavaDir = file("${opencvSdkPath}/sdk/java")
+            if (sdkJavaDir.exists()) {
+                println("OpenCV SDK java directory exists, listing contents:")
+                sdkJavaDir.listFiles()?.forEach { file ->
+                    println("  - ${file.name}")
+                }
+            } else {
+                println("OpenCV SDK java directory not found at: ${sdkJavaDir.absolutePath}")
+            }
+            println("WARNING: OpenCV JAR not found, OpenCV features may not work")
         }
     }
 }
