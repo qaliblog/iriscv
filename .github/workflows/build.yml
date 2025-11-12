@@ -45,25 +45,17 @@ jobs:
           if ! grep -q "namespace" "$OPENCV_BUILD_GRADLE"; then
             # Read AndroidManifest to get package name
             MANIFEST="opencv-android-sdk/sdk/java/AndroidManifest.xml"
+            PACKAGE="org.opencv"
             if [ -f "$MANIFEST" ]; then
-              PACKAGE=$(grep -oP 'package="\K[^"]+' "$MANIFEST" | head -1)
-              if [ -n "$PACKAGE" ]; then
-                # Add namespace after android { block using a temporary file
-                sed "/^android {/a\\
-    namespace = \"$PACKAGE\"" "$OPENCV_BUILD_GRADLE" > "$OPENCV_BUILD_GRADLE.tmp" && mv "$OPENCV_BUILD_GRADLE.tmp" "$OPENCV_BUILD_GRADLE"
-                echo "Added namespace $PACKAGE to OpenCV build.gradle"
-              else
-                # Fallback namespace
-                sed "/^android {/a\\
-    namespace = \"org.opencv\"" "$OPENCV_BUILD_GRADLE" > "$OPENCV_BUILD_GRADLE.tmp" && mv "$OPENCV_BUILD_GRADLE.tmp" "$OPENCV_BUILD_GRADLE"
-                echo "Added default namespace org.opencv to OpenCV build.gradle"
+              PACKAGE_FROM_MANIFEST=$(grep -oP 'package="\K[^"]+' "$MANIFEST" | head -1)
+              if [ -n "$PACKAGE_FROM_MANIFEST" ]; then
+                PACKAGE="$PACKAGE_FROM_MANIFEST"
               fi
-            else
-              # Fallback namespace
-              sed "/^android {/a\\
-    namespace = \"org.opencv\"" "$OPENCV_BUILD_GRADLE" > "$OPENCV_BUILD_GRADLE.tmp" && mv "$OPENCV_BUILD_GRADLE.tmp" "$OPENCV_BUILD_GRADLE"
-              echo "Added default namespace org.opencv to OpenCV build.gradle"
             fi
+            # Use awk to add namespace after android { line
+            awk -v ns="$PACKAGE" '/^android \{/ { print; print "    namespace = \"" ns "\""; next }1' "$OPENCV_BUILD_GRADLE" > "$OPENCV_BUILD_GRADLE.tmp"
+            mv "$OPENCV_BUILD_GRADLE.tmp" "$OPENCV_BUILD_GRADLE"
+            echo "Added namespace $PACKAGE to OpenCV build.gradle"
           else
             echo "Namespace already present in OpenCV build.gradle"
           fi
