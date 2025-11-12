@@ -66,18 +66,17 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
     
-    // OpenCV - Try Maven dependency first, fallback to SDK JAR
-    val opencvSdkPath = project.rootProject.file("opencv-android-sdk")
-    val opencvJarPath = "${opencvSdkPath}/sdk/java/opencv.jar"
+    // OpenCV - Use Maven dependency
+    // https://mvnrepository.com/artifact/org.opencv/opencv
+    implementation("org.opencv:opencv:4.12.0")
     
-    if (opencvSdkPath.exists() && file(opencvJarPath).exists()) {
-        // Use SDK JAR if available
-        implementation(files(opencvJarPath))
-        println("Using OpenCV from SDK: $opencvJarPath")
-    } else {
-        // Fallback to Maven dependency (if available)
-        // Note: This may not exist in Maven Central, but worth trying
-        implementation("org.opencv:opencv-android:4.8.0")
-        println("Using OpenCV from Maven Central")
+    // Also include native libs from SDK if available
+    val opencvSdkPath = project.rootProject.file("opencv-android-sdk")
+    if (opencvSdkPath.exists()) {
+        val nativeLibsPath = "${opencvSdkPath}/sdk/native/libs"
+        if (file(nativeLibsPath).exists()) {
+            // Native libs are already configured in sourceSets above
+            println("OpenCV native libs found in SDK")
+        }
     }
 }
