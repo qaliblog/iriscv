@@ -48,23 +48,20 @@ jobs:
             if [ -f "$MANIFEST" ]; then
               PACKAGE=$(grep -oP 'package="\K[^"]+' "$MANIFEST" | head -1)
               if [ -n "$PACKAGE" ]; then
-                # Add namespace after android { block
-                sed -i "/^android {/a\\
-    namespace = \"$PACKAGE\"
-" "$OPENCV_BUILD_GRADLE"
+                # Add namespace after android { block using a temporary file
+                sed "/^android {/a\\
+    namespace = \"$PACKAGE\"" "$OPENCV_BUILD_GRADLE" > "$OPENCV_BUILD_GRADLE.tmp" && mv "$OPENCV_BUILD_GRADLE.tmp" "$OPENCV_BUILD_GRADLE"
                 echo "Added namespace $PACKAGE to OpenCV build.gradle"
               else
                 # Fallback namespace
-                sed -i "/^android {/a\\
-    namespace = \"org.opencv\"
-" "$OPENCV_BUILD_GRADLE"
+                sed "/^android {/a\\
+    namespace = \"org.opencv\"" "$OPENCV_BUILD_GRADLE" > "$OPENCV_BUILD_GRADLE.tmp" && mv "$OPENCV_BUILD_GRADLE.tmp" "$OPENCV_BUILD_GRADLE"
                 echo "Added default namespace org.opencv to OpenCV build.gradle"
               fi
             else
               # Fallback namespace
-              sed -i "/^android {/a\\
-    namespace = \"org.opencv\"
-" "$OPENCV_BUILD_GRADLE"
+              sed "/^android {/a\\
+    namespace = \"org.opencv\"" "$OPENCV_BUILD_GRADLE" > "$OPENCV_BUILD_GRADLE.tmp" && mv "$OPENCV_BUILD_GRADLE.tmp" "$OPENCV_BUILD_GRADLE"
               echo "Added default namespace org.opencv to OpenCV build.gradle"
             fi
           else
