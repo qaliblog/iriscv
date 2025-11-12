@@ -35,6 +35,11 @@ jobs:
         else
           echo "OpenCV SDK already exists, skipping download"
         fi
+        echo "Verifying OpenCV SDK structure..."
+        ls -la opencv-android-sdk/ || echo "opencv-android-sdk directory not found"
+        ls -la opencv-android-sdk/sdk/ 2>/dev/null || echo "sdk directory not found"
+        ls -la opencv-android-sdk/sdk/java/ 2>/dev/null || echo "java directory not found"
+        find opencv-android-sdk -name "*.jar" -type f 2>/dev/null | head -5 || echo "No JAR files found"
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v2
