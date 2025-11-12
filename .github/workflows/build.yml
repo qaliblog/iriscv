@@ -52,9 +52,16 @@ jobs:
                 PACKAGE="$PACKAGE_FROM_MANIFEST"
               fi
             fi
-            # Use awk to add namespace after android { line
-            awk -v ns="$PACKAGE" '/^android \{/ { print; print "    namespace = \"" ns "\""; next }1' "$OPENCV_BUILD_GRADLE" > "$OPENCV_BUILD_GRADLE.tmp"
-            mv "$OPENCV_BUILD_GRADLE.tmp" "$OPENCV_BUILD_GRADLE"
+            # Use Python to add namespace after android { line
+            python3 << EOF
+import re
+with open("$OPENCV_BUILD_GRADLE", "r") as f:
+    content = f.read()
+if "namespace" not in content:
+    content = re.sub(r'^(android \{)$', r'\1\n    namespace = "$PACKAGE"', content, flags=re.MULTILINE)
+    with open("$OPENCV_BUILD_GRADLE", "w") as f:
+        f.write(content)
+EOF
             echo "Added namespace $PACKAGE to OpenCV build.gradle"
           else
             echo "Namespace already present in OpenCV build.gradle"
