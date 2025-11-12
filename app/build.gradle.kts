@@ -66,17 +66,66 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
     
-    // OpenCV Android - Use Maven dependency
-    // https://mvnrepository.com/artifact/org.opencv/opencv-android
-    implementation("org.opencv:opencv-android:1.0.1")
-    
-    // Also include native libs from SDK if available
+    // OpenCV Android - Must use SDK JAR (Maven dependency not available)
     val opencvSdkPath = project.rootProject.file("opencv-android-sdk")
     if (opencvSdkPath.exists()) {
-        val nativeLibsPath = "${opencvSdkPath}/sdk/native/libs"
-        if (file(nativeLibsPath).exists()) {
-            // Native libs are already configured in sourceSets above
-            println("OpenCV native libs found in SDK")
+        // Search for JAR file in common locations
+        val possibleJarPaths = mutableListOf<String>()
+        
+        // Standard paths
+        possibleJarPaths.add("${opencvSdkPath}/sdk/java/opencv.jar")
+        possibleJarPaths.add("${opencvSdkPath}/sdk/java/opencv-android.jar")
+        possibleJarPaths.add("${opencvSdkPath}/sdk/java/opencv_java4.jar")
+        possibleJarPaths.add("${opencvSdkPath}/sdk/java/opencv_java.jar")
+        
+        // Also search recursively for any JAR files
+        val sdkJavaDir = file("${opencvSdkPath}/sdk/java")
+        if (sdkJavaDir.exists() && sdkJavaDir.isDirectory) {
+            sdkJavaDir.walkTopDown().forEach { file ->
+                if (file.isFile && file.extension == "jar") {
+                    possibleJarPaths.add(file.absolutePath)
+                }
+            }
         }
+        
+        var jarFound = false
+        for (jarPath in possibleJarPaths) {
+            val jarFile = file(jarPath)
+            if (jarFile.exists()) {
+                implementation(files(jarFile))
+                println("Using OpenCV Android SDK JAR: $jarPath")
+                jarFound = true
+                break
+            }
+        }
+        
+        if (!jarFound) {
+            // Debug output
+            println("ERROR: OpenCV JAR not found. Searching SDK structure...")
+            println("SDK path: ${opencvSdkPath.absolutePath}")
+            if (file("${opencvSdkPath}/sdk").exists()) {
+                println("SDK/sdk directory exists")
+                file("${opencvSdkPath}/sdk").listFiles()?.forEach { f ->
+                    println("  ${f.name}")
+                }
+            }
+            if (sdkJavaDir.exists()) {
+                println("SDK/sdk/java directory exists")
+                sdkJavaDir.listFiles()?.forEach { f ->
+                    println("    ${f.name}")
+                }
+            }
+            // Find all JARs in SDK
+            val allJars = file(opencvSdkPath).walkTopDown().filter { it.extension == "jar" }.toList()
+            if (allJars.isNotEmpty()) {
+                println("Found JAR files in SDK:")
+                allJars.forEach { println("  ${it.absolutePath}") }
+            } else {
+                println("No JAR files found in SDK")
+            }
+            throw RuntimeException("OpenCV Android SDK JAR not found. Please ensure OpenCV SDK is downloaded correctly.")
+        }
+    } else {
+        throw RuntimeException("OpenCV Android SDK not found at: ${opencvSdkPath.absolutePath}")
     }
 }
