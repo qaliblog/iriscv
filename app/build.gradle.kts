@@ -66,45 +66,17 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
     
-    // OpenCV - Must use Android SDK JAR (not Maven, as Maven version is for desktop Java)
+    // OpenCV Android - Use Maven dependency
+    // https://mvnrepository.com/artifact/org.opencv/opencv-android
+    implementation("org.opencv:opencv-android:1.0.1")
+    
+    // Also include native libs from SDK if available
     val opencvSdkPath = project.rootProject.file("opencv-android-sdk")
     if (opencvSdkPath.exists()) {
-        // Try to find OpenCV JAR in SDK
-        val possibleJarPaths = listOf(
-            "${opencvSdkPath}/sdk/java/opencv.jar",
-            "${opencvSdkPath}/sdk/java/opencv-android.jar",
-            "${opencvSdkPath}/sdk/java/opencv_java4.jar",
-            "${opencvSdkPath}/sdk/java/opencv_java.jar"
-        )
-        
-        var jarFound = false
-        for (jarPath in possibleJarPaths) {
-            val jarFile = file(jarPath)
-            if (jarFile.exists()) {
-                implementation(files(jarFile))
-                println("Using OpenCV Android SDK JAR: $jarPath")
-                jarFound = true
-                break
-            }
+        val nativeLibsPath = "${opencvSdkPath}/sdk/native/libs"
+        if (file(nativeLibsPath).exists()) {
+            // Native libs are already configured in sourceSets above
+            println("OpenCV native libs found in SDK")
         }
-        
-        if (!jarFound) {
-            // Debug: list SDK structure
-            println("WARNING: OpenCV JAR not found. SDK structure:")
-            if (file("${opencvSdkPath}/sdk").exists()) {
-                file("${opencvSdkPath}/sdk").listFiles()?.forEach { f ->
-                    println("  ${f.name} (${if (f.isDirectory) "dir" else "file"})")
-                }
-            }
-            if (file("${opencvSdkPath}/sdk/java").exists()) {
-                file("${opencvSdkPath}/sdk/java").listFiles()?.forEach { f ->
-                    println("    java/${f.name}")
-                }
-            }
-            // Don't fail build, but warn - native libs might still work
-            println("WARNING: OpenCV JAR not found - Android-specific classes will be unavailable")
-        }
-    } else {
-        println("WARNING: OpenCV SDK not found - OpenCV features will not work")
     }
 }

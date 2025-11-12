@@ -45,6 +45,8 @@ jobs:
         ls -la opencv-android-sdk/sdk/java/ 2>/dev/null || echo "java directory not found"
         echo "--- SDK directory contents ---"
         ls -la opencv-android-sdk/sdk/ 2>/dev/null || echo "sdk directory not found"
+        echo "--- Full SDK tree (first 30 lines) ---"
+        tree -L 3 opencv-android-sdk 2>/dev/null | head -30 || find opencv-android-sdk -type f -name "*.jar" -o -name "*.so" | head -20
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v2
