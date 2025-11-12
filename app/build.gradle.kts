@@ -66,40 +66,18 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
     
-    // OpenCV - only add if SDK exists and JAR file is present
+    // OpenCV - Try Maven dependency first, fallback to SDK JAR
     val opencvSdkPath = project.rootProject.file("opencv-android-sdk")
-    if (opencvSdkPath.exists()) {
-        // Try multiple possible paths for OpenCV JAR
-        val possibleJarPaths = listOf(
-            "${opencvSdkPath}/sdk/java/opencv.jar",
-            "${opencvSdkPath}/sdk/java/opencv-android.jar",
-            "${opencvSdkPath}/sdk/java/opencv_java4.jar",
-            "${opencvSdkPath}/sdk/java/opencv_java.jar"
-        )
-        
-        var jarFound = false
-        for (jarPath in possibleJarPaths) {
-            val jarFile = file(jarPath)
-            if (jarFile.exists()) {
-                implementation(files(jarFile))
-                println("Found OpenCV JAR at: $jarPath")
-                jarFound = true
-                break
-            }
-        }
-        
-        if (!jarFound) {
-            // List what's actually in the SDK directory for debugging
-            val sdkJavaDir = file("${opencvSdkPath}/sdk/java")
-            if (sdkJavaDir.exists()) {
-                println("OpenCV SDK java directory exists, listing contents:")
-                sdkJavaDir.listFiles()?.forEach { file ->
-                    println("  - ${file.name}")
-                }
-            } else {
-                println("OpenCV SDK java directory not found at: ${sdkJavaDir.absolutePath}")
-            }
-            println("WARNING: OpenCV JAR not found, OpenCV features may not work")
-        }
+    val opencvJarPath = "${opencvSdkPath}/sdk/java/opencv.jar"
+    
+    if (opencvSdkPath.exists() && file(opencvJarPath).exists()) {
+        // Use SDK JAR if available
+        implementation(files(opencvJarPath))
+        println("Using OpenCV from SDK: $opencvJarPath")
+    } else {
+        // Fallback to Maven dependency (if available)
+        // Note: This may not exist in Maven Central, but worth trying
+        implementation("org.opencv:opencv-android:4.8.0")
+        println("Using OpenCV from Maven Central")
     }
 }

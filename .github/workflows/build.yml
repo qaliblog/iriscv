@@ -37,9 +37,14 @@ jobs:
         fi
         echo "Verifying OpenCV SDK structure..."
         ls -la opencv-android-sdk/ || echo "opencv-android-sdk directory not found"
-        ls -la opencv-android-sdk/sdk/ 2>/dev/null || echo "sdk directory not found"
+        echo "--- SDK directory structure ---"
+        find opencv-android-sdk -type d -maxdepth 3 | head -20
+        echo "--- Looking for JAR files ---"
+        find opencv-android-sdk -name "*.jar" -type f 2>/dev/null | head -10 || echo "No JAR files found"
+        echo "--- SDK/java directory contents ---"
         ls -la opencv-android-sdk/sdk/java/ 2>/dev/null || echo "java directory not found"
-        find opencv-android-sdk -name "*.jar" -type f 2>/dev/null | head -5 || echo "No JAR files found"
+        echo "--- SDK directory contents ---"
+        ls -la opencv-android-sdk/sdk/ 2>/dev/null || echo "sdk directory not found"
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v2
