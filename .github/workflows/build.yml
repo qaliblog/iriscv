@@ -50,8 +50,11 @@ jobs:
               PACKAGE="$PACKAGE_FROM_MANIFEST"
             fi
           fi
+          # Export variables for Python script
+          export OPENCV_BUILD_GRADLE
+          export PACKAGE
           # Use Python to fix build.gradle
-          python3 << 'PYEOF'
+          python3 <<EOF
 import re
 import os
 build_gradle = os.environ.get('OPENCV_BUILD_GRADLE', 'opencv-android-sdk/sdk/build.gradle')
@@ -113,7 +116,7 @@ if "kotlinOptions" not in content:
 
 with open(build_gradle, "w") as f:
     f.write(content)
-PYEOF
+EOF
         fi
         echo "Verifying OpenCV SDK structure..."
         ls -la opencv-android-sdk/ || echo "opencv-android-sdk directory not found"
