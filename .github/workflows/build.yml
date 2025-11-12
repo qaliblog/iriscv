@@ -38,34 +38,82 @@ jobs:
         
     - name: Fix OpenCV SDK build.gradle
       run: |
-        # Add namespace to OpenCV SDK build.gradle if not present
+        # Add namespace and fix Java version in OpenCV SDK build.gradle
         OPENCV_BUILD_GRADLE="opencv-android-sdk/sdk/build.gradle"
         if [ -f "$OPENCV_BUILD_GRADLE" ]; then
-          # Check if namespace is already set
-          if ! grep -q "namespace" "$OPENCV_BUILD_GRADLE"; then
-            # Read AndroidManifest to get package name
-            MANIFEST="opencv-android-sdk/sdk/java/AndroidManifest.xml"
-            PACKAGE="org.opencv"
-            if [ -f "$MANIFEST" ]; then
-              PACKAGE_FROM_MANIFEST=$(grep -oP 'package="\K[^"]+' "$MANIFEST" | head -1)
-              if [ -n "$PACKAGE_FROM_MANIFEST" ]; then
-                PACKAGE="$PACKAGE_FROM_MANIFEST"
-              fi
+          # Read AndroidManifest to get package name
+          MANIFEST="opencv-android-sdk/sdk/java/AndroidManifest.xml"
+          PACKAGE="org.opencv"
+          if [ -f "$MANIFEST" ]; then
+            PACKAGE_FROM_MANIFEST=$(grep -oP 'package="\K[^"]+' "$MANIFEST" | head -1)
+            if [ -n "$PACKAGE_FROM_MANIFEST" ]; then
+              PACKAGE="$PACKAGE_FROM_MANIFEST"
             fi
-            # Use Python to add namespace after android { line
-            python3 << EOF
-import re
-with open("$OPENCV_BUILD_GRADLE", "r") as f:
-    content = f.read()
-if "namespace" not in content:
-    content = re.sub(r'^(android \{)$', r'\1\n    namespace = "$PACKAGE"', content, flags=re.MULTILINE)
-    with open("$OPENCV_BUILD_GRADLE", "w") as f:
-        f.write(content)
-EOF
-            echo "Added namespace $PACKAGE to OpenCV build.gradle"
-          else
-            echo "Namespace already present in OpenCV build.gradle"
           fi
+          # Use Python to fix build.gradle
+          python3 << 'PYEOF'
+import re
+import os
+build_gradle = os.environ.get('OPENCV_BUILD_GRADLE', 'opencv-android-sdk/sdk/build.gradle')
+package_name = os.environ.get('PACKAGE', 'org.opencv')
+
+with open(build_gradle, "r") as f:
+    content = f.read()
+    
+# Add namespace if not present
+if "namespace" not in content:
+    content = re.sub(r'^(android \{)$', r'\1\n    namespace = "' + package_name + '"', content, flags=re.MULTILINE)
+    print(f"Added namespace {package_name} to OpenCV build.gradle")
+else:
+    print("Namespace already present in OpenCV build.gradle")
+
+# Fix Java version compatibility - ensure both Java and Kotlin use Java 17
+if "compileOptions" not in content or "sourceCompatibility JavaVersion.VERSION_17" not in content:
+    # Add or update compileOptions
+    if "compileOptions" in content:
+        # Update existing compileOptions
+        content = re.sub(
+            r'sourceCompatibility\s+JavaVersion\.VERSION_\d+',
+            'sourceCompatibility JavaVersion.VERSION_17',
+            content
+        )
+        content = re.sub(
+            r'targetCompatibility\s+JavaVersion\.VERSION_\d+',
+            'targetCompatibility JavaVersion.VERSION_17',
+            content
+        )
+    else:
+        # Add compileOptions after android block
+        content = re.sub(
+            r'(android \{[\s\S]*?\n\})',
+            r'\1\n    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }',
+            content,
+            count=1
+        )
+    print("Updated Java version to 17 in OpenCV build.gradle")
+
+# Add Kotlin options if not present
+if "kotlinOptions" not in content:
+    # Try to find where to add it (after compileOptions or at end of android block)
+    if "compileOptions" in content:
+        content = re.sub(
+            r'(compileOptions \{[\s\S]*?\n\s*\})',
+            r'\1\n    kotlinOptions {\n        jvmTarget = "17"\n    }',
+            content,
+            count=1
+        )
+    else:
+        content = re.sub(
+            r'(android \{[\s\S]*?\n\})',
+            r'\1\n    kotlinOptions {\n        jvmTarget = "17"\n    }',
+            content,
+            count=1
+        )
+    print("Added Kotlin options with Java 17 target")
+
+with open(build_gradle, "w") as f:
+    f.write(content)
+PYEOF
         fi
         echo "Verifying OpenCV SDK structure..."
         ls -la opencv-android-sdk/ || echo "opencv-android-sdk directory not found"
